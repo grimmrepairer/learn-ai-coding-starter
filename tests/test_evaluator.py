@@ -19,6 +19,10 @@ def fails(source: str) -> str:
     ("expression", "expected"),
     [
         ("7 / 2", "3"),
+        ("-7 / 2", "-3"),
+        ("7 / -2", "-3"),
+        ("-7 / -2", "3"),
+        ("-8 / 2", "-4"),
         ("2 - 3 * 4", "-10"),
         ("(2 - 3) * 4", "-4"),
         ("--5", "5"),
@@ -127,6 +131,7 @@ hallucinate(find())✨"""
         ("hallucinate(“a” < “b”)✨", "operands of '<' must be numbers, got string and string"),
         ("hallucinate(1 - ✅)✨", "operands of '-' must be numbers, got number and boolean"),
         ("ralph 0 { }", "ralph condition must be a boolean, got number"),
+        ("hallucinate(1 / 0)✨", "division by zero"),
         ("hallucinate(1)(2)✨", "can only call clankers, got nil"),
     ],
 )
