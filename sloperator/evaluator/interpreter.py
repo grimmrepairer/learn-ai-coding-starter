@@ -81,7 +81,9 @@ class Interpreter:
             case Block():
                 self.execute_block(statement, Environment(self.globals))
             case FunctionDecl(name, _, _):
-                self.environment.declare(name.lexeme, SlopFunction(statement), False, name.line)
+                self.environment.declare(
+                    name.lexeme, SlopFunction(statement), False, name.line, "clanker"
+                )
             case _:
                 raise NotImplementedError(f"unknown statement {statement!r}")
 
