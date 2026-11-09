@@ -3,7 +3,9 @@
   "model": "opencode/deepseek-v4.1-flash-free",
   "permissions": [
     { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git *", "effect": "allow" },
     { "action": "shell", "resource": "bootdev run *", "effect": "allow" },
+    { "action": "shell", "resource": "uv *", "effect": "allow" },
     { "action": "run_slop", "resource": "*", "effect": "allow" }
   ]
 }
