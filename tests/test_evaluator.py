@@ -150,6 +150,14 @@ def test_runtime_type_errors(source: str, message: str):
     assert fails(source) == f"SlopLang runtime error at line 1: {message}"
 
 
+def test_division_by_zero_keeps_earlier_output_and_stops():
+    source = "hallucinate(“before”)✨\nhallucinate(1 / 0)✨\nhallucinate(“after”)✨"
+    result = run_source(source)
+    assert result.stdout == "before\n"
+    assert result.stderr == "SlopLang runtime error at line 2: division by zero\n"
+    assert result.exit_code == 1
+
+
 def test_stringify_every_value_kind():
     source = """clanker f() { }
 hallucinate(0)✨
