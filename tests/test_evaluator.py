@@ -171,6 +171,23 @@ hallucinate(hallucinate)✨"""
     assert run(source) == "0\n-42\nstr\n✅\n❌\nnil\n<clanker f>\n<clanker hallucinate>\n"
 
 
+def test_hallucinate_prints_arguments_separated_by_spaces():
+    assert run("hallucinate(1, “two”, ✅, ❌, 3 + 4)✨") == "1 two ✅ ❌ 7\n"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "hallucinate()✨",
+        "hallucinate(“”)✨",
+        "hallucinate(“”, “”)✨",
+        "hallucinate(“   ”)✨",
+    ],
+)
+def test_hallucinate_prints_a_blank_line_when_empty(source: str):
+    assert run(source) == "\n"
+
+
 def test_variation_selector_after_emoji_is_accepted():
     assert run("hallucinate(✅️)✨️\nhallucinate(❌️)✨️") == "✅\n❌\n"
 
