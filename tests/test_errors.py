@@ -14,6 +14,7 @@ CASES = [
     ("– nope", "lexical", 1, "'–' is an en dash, comments start with an em dash (—)"),
     ("hallucinate(“oops)✨", "lexical", 1, "unterminated string"),
     ("hallucinate(“\\q”)✨", "lexical", 1, "unknown escape sequence '\\q'"),
+    ("slop x = 1@✨", "lexical", 1, "unexpected character '@'"),
     (
         "slop x = 1\nslop y = 2✨",
         "syntax",
