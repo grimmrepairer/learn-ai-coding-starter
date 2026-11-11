@@ -4,3 +4,4 @@
 __pycache__/
 .out
 .opencode/node_modules/
+logs/
