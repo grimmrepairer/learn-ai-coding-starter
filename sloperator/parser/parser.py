@@ -46,6 +46,21 @@ class Parser:
     def function_decl(self) -> FunctionDecl:
         name = self.expect(TokenType.IDENTIFIER, "expected a clanker name after 'clanker'")
         self.expect(TokenType.LEFT_PAREN, "expected '(' after clanker name")
+        params = self.parameters()
+        self.expect(TokenType.RIGHT_PAREN, "expected ')' after parameters")
+
+        seen: set[str] = set()
+        for param in params:
+            if param.lexeme in seen:
+                raise self.error(param, "expected a unique parameter name")
+            seen.add(param.lexeme)
+
+        self.function_depth += 1
+        body = self.block("expected '{' before clanker body")
+        self.function_depth -= 1
+        return FunctionDecl(name, tuple(params), body)
+
+    def parameters(self) -> list[Token]:
         params: list[Token] = []
         if not self.check(TokenType.RIGHT_PAREN):
             params.append(self.expect(TokenType.IDENTIFIER, "expected a parameter name"))
@@ -53,18 +68,7 @@ class Parser:
                 params.append(
                     self.expect(TokenType.IDENTIFIER, "expected a parameter name after ','")
                 )
-        self.expect(TokenType.RIGHT_PAREN, "expected ')' after parameters")
-
-        seen: set[str] = set()
-        for param in params:
-            if param.lexeme in seen:
-                raise SlopSyntaxError(param.line, f"duplicate parameter name '{param.lexeme}'")
-            seen.add(param.lexeme)
-
-        self.function_depth += 1
-        body = self.block("expected '{' before clanker body")
-        self.function_depth -= 1
-        return FunctionDecl(name, tuple(params), body)
+        return params
 
     def declaration(self) -> Stmt:
         if self.match(TokenType.SLOP, TokenType.LOADBEARING):
@@ -82,19 +86,20 @@ class Parser:
 
     def statement(self) -> Stmt:
         if self.check(TokenType.CLANKER):
-            raise SlopSyntaxError(
-                self.peek().line, "clanker declarations are only allowed at the top level"
-            )
+            raise self.error(self.peek(), "clanker declarations are only allowed at the top level")
         if self.match(TokenType.VIBE):
             return self.if_stmt()
         if self.match(TokenType.RALPH):
-            return self.while_stmt()
+            return self.loop_stmt()
         if self.match(TokenType.SHIP):
-            return self.ship_stmt()
+            return self.return_stmt()
         if self.check(TokenType.LEFT_BRACE):
             return self.block("expected '{'")
         if self.check(TokenType.IDENTIFIER) and self.peek_next().type is TokenType.EQUAL:
             return self.assign_stmt()
+        return self.expression_stmt()
+
+    def expression_stmt(self) -> ExprStmt:
         expression = self.expression()
         self.terminator("expression")
         return ExprStmt(expression)
@@ -107,15 +112,15 @@ class Parser:
             else_branch = self.block("expected '{' after nah")
         return If(condition, then_branch, else_branch)
 
-    def while_stmt(self) -> While:
+    def loop_stmt(self) -> While:
         condition = self.expression()
         body = self.block("expected '{' after ralph condition")
         return While(condition, body)
 
-    def ship_stmt(self) -> Ship:
+    def return_stmt(self) -> Ship:
         keyword = self.previous()
         if self.function_depth == 0:
-            raise SlopSyntaxError(keyword.line, "ship is only allowed inside a clanker")
+            raise self.error(keyword, "ship is only allowed inside a clanker")
         value = self.expression()
         self.terminator("ship value")
         return Ship(keyword, value)
@@ -148,23 +153,23 @@ class Parser:
         return expr
 
     def logic_and(self) -> Expr:
-        expr = self.comparison()
+        expr = self.equality()
         while self.match(TokenType.AND):
-            expr = Logical(expr, self.previous(), self.comparison())
+            expr = Logical(expr, self.previous(), self.equality())
         return expr
 
     def equality(self) -> Expr:
-        expr = self.term()
+        expr = self.comparison()
         while self.match(TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL):
-            expr = Binary(expr, self.previous(), self.term())
+            expr = Binary(expr, self.previous(), self.comparison())
         return expr
 
     def comparison(self) -> Expr:
-        expr = self.equality()
+        expr = self.term()
         while self.match(
             TokenType.LESS, TokenType.LESS_EQUAL, TokenType.GREATER, TokenType.GREATER_EQUAL
         ):
-            expr = Binary(expr, self.previous(), self.equality())
+            expr = Binary(expr, self.previous(), self.term())
         return expr
 
     def term(self) -> Expr:
@@ -175,9 +180,6 @@ class Parser:
 
     def factor(self) -> Expr:
         expr = self.unary()
-        return self.factor_tail(expr)
-
-    def factor_tail(self, expr: Expr) -> Expr:
         while self.match(TokenType.STAR, TokenType.SLASH):
             expr = Binary(expr, self.previous(), self.unary())
         return expr
@@ -191,14 +193,18 @@ class Parser:
         expr = self.primary()
         while self.match(TokenType.LEFT_PAREN):
             paren = self.previous()
-            arguments: list[Expr] = []
-            if not self.check(TokenType.RIGHT_PAREN):
-                arguments.append(self.expression())
-                while self.match(TokenType.COMMA):
-                    arguments.append(self.expression())
+            arguments = self.arguments()
             self.expect(TokenType.RIGHT_PAREN, "expected ')' after arguments")
             expr = Call(expr, paren, tuple(arguments))
         return expr
+
+    def arguments(self) -> list[Expr]:
+        arguments: list[Expr] = []
+        if not self.check(TokenType.RIGHT_PAREN):
+            arguments.append(self.expression())
+            while self.match(TokenType.COMMA):
+                arguments.append(self.expression())
+        return arguments
 
     def primary(self) -> Expr:
         token = self.advance()
