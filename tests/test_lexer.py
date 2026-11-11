@@ -43,6 +43,17 @@ def test_number_literal_is_an_int():
     assert tokenize("9001")[0] == Token(TokenType.NUMBER, "9001", 9001, 1)
 
 
+def test_line_numbers_advance_past_comments():
+    tokens = tokenize("— comment\n✨\n— another\n✨")
+    assert [token.line for token in tokens] == [2, 4, 4]
+
+
+def test_lexical_error_after_comment_reports_correct_line():
+    with pytest.raises(LexicalError) as info:
+        tokenize("— comment\n@")
+    assert info.value.line == 2
+
+
 def test_hallucinate_is_an_identifier_not_a_keyword():
     assert tokenize("hallucinate")[0].type is TokenType.IDENTIFIER
 
